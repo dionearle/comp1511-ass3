@@ -202,7 +202,7 @@ int location_check(struct bot *b) {
             }
         }
     // Bot is low on battery
-} else if ((b->battery_level < world_size) && b->turns_left > elec_min) {
+    } else if ((b->battery_level < world_size) && b->turns_left > elec_min) {
         // If there is somewhere that still has electricity to sell, go there
         if (best_location(b, "Electricity", SHOP_SELLS) != 0) {
                 chosen = LOW_ENERGY;
@@ -287,7 +287,9 @@ int best_location(struct bot *b, char destination_type[MAX_NAME_CHARS], int valu
     if (strcmp(destination_type, "AnyFruit") == 0) {
 
         int loc = best_fruit(b);
-
+        if (loc == 0) {
+            return distance;
+        }
         struct location * tmp = b->location->east;
         int i = 1;
         while (i != loc) {
@@ -419,6 +421,17 @@ int best_fruit(struct bot *b) {
         distance++;
     }
 
+    // Checking the final location
+    if ((cur->price > 0 && strcmp(cur->fruit, "Electricity") != 0
+    && cur->quantity != 0)) {
+        // Also check that we can still buy the fruit we are choosing to find
+        if (best_location(b, cur->fruit, SHOP_SELLS) != 0) {
+            prices_array[i] = cur->price;
+            distance_array[i] = distance;
+            i++;
+        }
+    }
+
     // Going through all of the found locations which buy the correct type,
     // we now find the location which has the highest buying price
     int best_price = prices_array[0];
@@ -437,7 +450,6 @@ int best_fruit(struct bot *b) {
 
 // If all case-testing has been completed and our bot is going to move 0 spaces, double-check if it should do something else
 int check_moves(struct bot *b) {
-
     int move = 0;
     char destination_type[MAX_NAME_CHARS];
     int shop_type;
