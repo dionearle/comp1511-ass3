@@ -161,7 +161,6 @@ int location_check(struct bot *b) {
         }
     // Bot is low on battery
     } else if ((b->battery_level < world_size) && b->turns_left > 6) {
-        printf("We are low on energy!!!");
         chosen = LOW_ENERGY;
     }
 
