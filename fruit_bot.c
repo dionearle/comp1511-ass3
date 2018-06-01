@@ -17,6 +17,7 @@
 #define SHOP_SELLS_ELEC 2
 #define SHOP_SELLS_FRUIT_SAME 3
 #define SHOP_SELLS_FRUIT_EMPTY 4
+#define LOW_ENERGY 5
 
 void print_player_name(void);
 void print_move(struct bot *b);
@@ -25,6 +26,7 @@ void run_unit_tests(void);
 // ADD PROTOTYPES FOR YOUR FUNCTIONS HERE
 int location_check(struct bot *b);
 int choose_location_type(struct bot *b);
+int calculate_world_size(struct bot *b);
 int best_location(struct bot *b, char destination_type[MAX_NAME_CHARS], int value);
 int find_fruit(struct bot *b);
 int check_moves(struct bot *b);
@@ -61,10 +63,6 @@ void print_player_name(void) {
 
 void print_move(struct bot *b) {
 
-    // Insert functions to determine where the bot should travel
-    // and determine what type of place this is. Assign to variable
-    // destination_type.
-
     // Keeping track of whether the bot has already made a play this round
     int played = 0;
 
@@ -85,10 +83,18 @@ void print_move(struct bot *b) {
         }
     } else if (current_stop == SHOP_SELLS_FRUIT_EMPTY) {
         if (b->turns_left > 2) {
-            printf("Buy %d\n", b->maximum_fruit_kg);
+            // Before buying, ensure we will be able to sell the fruit somewhere
+            if (best_location(b, b->location->fruit, SHOP_BUYS) != 0) {
+                printf("Buy %d\n", b->maximum_fruit_kg);
+                played = 1;
+            }
         } else { // If the game is nearly over, don't buy any more fruit
             printf("Move 0");
+            played = 1;
         }
+    } else if (current_stop == LOW_ENERGY) {
+        int find_elec = best_location(b, "Electricity", SHOP_SELLS);
+        printf("Move %d", find_elec);
         played = 1;
     }
 
@@ -116,36 +122,65 @@ void run_unit_tests(void) {
 // An initial check to see if our bot can buy or sell anything at its current location
 int location_check(struct bot *b) {
 
+    int world_size = calculate_world_size(b);
+
     struct location *cur = b->location;
     int chosen = 0;
 
     // If the place buys fruit, it has quantity remaining and I have fruit on board
     if (cur->price > 0 && cur->quantity > 0 && b->fruit != NULL) {
         // If I am carrying the right type of fruit (or it is a compost heap), sell as much as I can
-        if (strcmp(cur->fruit, b->fruit) == 0 || strcmp(cur->fruit, "Anything") == 0) {
+        if (strcmp(cur->fruit, b->fruit) == 0) {
             chosen = SHOP_BUYS;
-        }
-    } else if (cur->price < 0) { // Shop only sells fruit or electricity
-        if (strcmp(cur->fruit, "Electricity") == 0) { // Shop sells electricity
-            if (b->battery_level < b->battery_capacity && cur->quantity > 0
-            && b->cash > (-1)*(cur->price)) {
-                chosen = SHOP_SELLS_ELEC;
+        } else if (strcmp(cur->fruit, "Anything") == 0) {
+            // If there is no where to sell the fruit I am carrying, sell at compost heap
+            if (best_location(b, b->fruit, SHOP_BUYS) == 0) {
+                chosen = SHOP_BUYS;
             }
-        } else { // Shop sells fruit
-            if (b->fruit != NULL) { // If I am carrying fruit, check it is the same type
-                if (strcmp(cur->fruit, b->fruit) == 0 && cur->quantity > 0
-                && b->cash > (-1)*(cur->price) && b->fruit_kg != b->maximum_fruit_kg) { // Bot has same fruit
-                    chosen = SHOP_SELLS_FRUIT_SAME;
-                }
-            } else if (b->fruit == NULL) { // Bot has an empty cart
-                if (cur->quantity > 0 && b->cash > (-1)*(cur->price)) {
+        }
+    // Current location sells electricity
+    } else if ((cur->price < 0) && (strcmp(cur->fruit, "Electricity") == 0)) {
+        if (b->battery_level < b->battery_capacity && cur->quantity > 0
+        && b->cash > (-1)*(cur->price)) {
+            chosen = SHOP_SELLS_ELEC;
+        }
+    // Current location sells fruit
+    } else if ((cur->price < 0) && (strcmp(cur->fruit, "Electricity") != 0)) {
+        // If I am carrying fruit, check it is the same type
+        if (b->fruit != NULL) {
+            // Bot has same fruit
+            if (strcmp(cur->fruit, b->fruit) == 0 && cur->quantity > 0
+            && b->cash > (-1)*(cur->price) && b->fruit_kg != b->maximum_fruit_kg) {
+                chosen = SHOP_SELLS_FRUIT_SAME;
+            }
+        // Bot has an empty cart
+        } else if (b->fruit == NULL) {
+            if (cur->quantity > 0 && b->cash > (-1)*(cur->price)) {
                 chosen = SHOP_SELLS_FRUIT_EMPTY;
-                }
             }
         }
+    // Bot is low on battery
+    } else if ((b->battery_level < world_size) && b->turns_left > 6) {
+        printf("We are low on energy!!!");
+        chosen = LOW_ENERGY;
     }
 
     return chosen;
+}
+
+// Simply calculates how many locations there are in the world
+int calculate_world_size(struct bot *b) {
+
+    int size = 0;
+    struct location *cur = b->location->east;
+
+    // Searching east through all locations until we return to the start
+    while (strcmp(cur->name, b->location->name) != 0) {
+        cur = cur->east;
+        size++;
+    }
+
+    return size;
 }
 
 // Determining what type of place we want our bot to move to
@@ -154,9 +189,10 @@ int choose_location_type(struct bot *b) {
     char destination_type[MAX_NAME_CHARS];
     int move;
     int shop_type;
+    int world_size = calculate_world_size(b);
 
     // Determining which type of location the bot should go to
-    if (b->battery_level <= 2 * (b->maximum_move) && b->turns_left > 6) { // If the bot is low on energy, find a charging station
+    if ((b->battery_level < world_size) && b->turns_left > 6) { // If the bot is low on energy, find a charging station
         strcpy(destination_type, "Electricity");
         shop_type = SHOP_SELLS;
     } else if (b->fruit_kg != 0) { // If the bot is carrying fruit
@@ -172,7 +208,6 @@ int choose_location_type(struct bot *b) {
     }
 
     move = best_location(b, destination_type, shop_type);
-
     return move;
 }
 
@@ -306,9 +341,12 @@ int find_fruit(struct bot *b) {
         if ((cur_east->price < 0
         && strcmp(cur_east->fruit, "Electricity") != 0
         && cur_east->quantity != 0)) {
-            prices_east_array[i] = cur_east->price;
-            distance_east_array[i] = east_len;
-            i++;
+            // Also check that if we were to buy from this location, we will be able to sell it somewhere
+            if (best_location(b, cur_east->fruit, SHOP_BUYS) != 0) {
+                prices_east_array[i] = cur_east->price;
+                distance_east_array[i] = east_len;
+                i++;
+            }
         }
 
         cur_east = cur_east->east;
@@ -330,9 +368,12 @@ int find_fruit(struct bot *b) {
         if (cur_west->price < 0
         && strcmp(cur_west->fruit, "Electricity") != 0
         && cur_west->quantity != 0) {
-            prices_west_array[j] = cur_west->price;
-            distance_west_array[j] = west_len;
-            j++;
+            // Also check that if we were to buy from this location, we will be able to sell it somewhere
+            if (best_location(b, cur_west->fruit, SHOP_BUYS) != 0) {
+                prices_west_array[j] = cur_west->price;
+                distance_west_array[j] = west_len;
+                j++;
+            }
         }
 
         cur_west = cur_west->west;
@@ -379,8 +420,9 @@ int check_moves(struct bot *b) {
     int move = 0;
     char destination_type[MAX_NAME_CHARS];
     int shop_type;
+    int world_size = calculate_world_size(b);
 
-    if (b->battery_level <= b->maximum_move && b->turns_left > 3) { // There is no more electricity available
+    if ((b->battery_level < world_size) && b->turns_left > 6) { // There is no more electricity available
         if (b->fruit_kg != 0) { // If we are still carrying fruit, try and move somewhere to sell it
             strcpy(destination_type, b->fruit);
             shop_type = SHOP_BUYS;
