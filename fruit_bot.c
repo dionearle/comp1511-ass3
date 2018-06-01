@@ -28,7 +28,8 @@ int location_check(struct bot *b);
 int choose_location_type(struct bot *b);
 int calculate_world_size(struct bot *b);
 int best_location(struct bot *b, char destination_type[MAX_NAME_CHARS], int value);
-int find_fruit(struct bot *b);
+//int find_fruit(struct bot *b);
+int best_fruit(struct bot *b);
 int check_moves(struct bot *b);
 
 
@@ -115,6 +116,18 @@ void run_unit_tests(void) {
     // PUT YOUR UNIT TESTS HERE
     // This is a difficult assignment to write unit tests for,
     // but make sure you describe your testing strategy above.
+
+    // Testing location_check
+
+    // Testing calculate_world_size
+
+    // Testing choose_location_type
+
+    // Testing best_location
+
+    // Testing find_fruit
+
+    // Testing check_moves
 }
 
 // ADD YOUR FUNCTIONS HERE
@@ -217,10 +230,19 @@ int best_location(struct bot *b, char destination_type[MAX_NAME_CHARS], int valu
     int east_len = 1;
     int west_len = -1;
 
-    // If we are looking to buy any type of fruit, use the find_fruit function to find the closest shop that sells fruit
+    // If we are looking to buy any type of fruit, use the best_fruit function to find the fruit that pays the most
     if (strcmp(destination_type, "AnyFruit") == 0) {
-        distance = find_fruit(b);
-        return distance;
+
+        int loc = best_fruit(b);
+
+        struct location * tmp = b->location->east;
+        int i = 1;
+        while (i != loc) {
+            i++;
+            tmp = tmp->east;
+        }
+
+        strcpy(destination_type, tmp->fruit);
     }
 
     // When we do find a location of the required type, record its price and distance
@@ -318,6 +340,49 @@ int best_location(struct bot *b, char destination_type[MAX_NAME_CHARS], int valu
     return distance;
 }
 
+// Search entire world for highest price fruit buyer
+int best_fruit(struct bot *b) {
+
+    // When we do find a location of the required type, record its price
+    int prices_array[MAX_LOCATIONS] = {0};
+    int distance_array[MAX_LOCATIONS] = {0};
+    int distance = 1;
+
+    struct location *cur = b->location->east;
+
+    int i = 0;
+    // Searching east through all locations until we return to the start
+    while (strcmp(cur->name, b->location->name) != 0) {
+        if ((cur->price > 0 && strcmp(cur->fruit, "Electricity") != 0
+        && cur->quantity != 0)) {
+            // Also check that we can still buy the fruit we are choosing to find
+            if (best_location(b, cur->fruit, SHOP_SELLS) != 0) {
+                prices_array[i] = cur->price;
+                distance_array[i] = distance;
+                i++;
+            }
+        }
+        cur = cur->east;
+        distance++;
+    }
+
+    // Going through all of the found locations which buy the correct type,
+    // we now find the location which has the highest buying price
+    int best_price = prices_array[0];
+    int best_distance = distance_array[0];
+    int j = 1;
+    while (prices_array[j] != 0) {
+        if (prices_array[j] > best_price) {
+            best_price = prices_array[j];
+            best_distance = distance_array[j];
+        }
+        j++;
+    }
+
+    return best_distance;
+}
+
+/*
 // Finding the cheapest shop which will sell any fruit
 int find_fruit(struct bot *b) {
 
@@ -412,6 +477,7 @@ int find_fruit(struct bot *b) {
 
     return distance;
 }
+*/
 
 // If all case-testing has been completed and our bot is going to move 0 spaces, double-check if it should do something else
 int check_moves(struct bot *b) {
