@@ -74,10 +74,8 @@ void print_move(struct bot *b) {
     // Depending on the size of the world, choose when to stop buying food
     if (world_size < 15) {
         buy_min = 2;
-    } else if (world_size >= 15 && world_size < 50) {
-        buy_min = 5;
     } else {
-        buy_min = 10;
+        buy_min = 5;
     }
 
     // Determining what the bot can do at its current location
@@ -181,13 +179,13 @@ int location_check(struct bot *b) {
         }
     // Current location sells electricity
     } else if ((cur->price < 0) && (strcmp(cur->fruit, "Electricity") == 0)) {
-        if (b->battery_level < b->battery_capacity && cur->quantity > 0
-        && b->cash > (-1)*(cur->price)) {
+        if (b->battery_level <= (3 * elec_min) && cur->quantity > 0
+        && b->cash > (-1)*(cur->price) && b->turns_left > elec_min) {
             chosen = SHOP_SELLS_ELEC;
         }
     // Current location sells fruit
     } else if ((cur->price < 0) && (strcmp(cur->fruit, "Electricity") != 0)
-    && (b->battery_level > world_size)) {
+    && (b->battery_level > 3 * elec_min)) {
         // If I am carrying fruit, check it is the same type
         if (b->fruit != NULL) {
             // Bot has same fruit
@@ -202,7 +200,7 @@ int location_check(struct bot *b) {
             }
         }
     // Bot is low on battery
-    } else if ((b->battery_level < world_size) && b->turns_left > elec_min) {
+    } else if ((b->battery_level <= 3 * elec_min) && b->turns_left > elec_min) {
         // If there is somewhere that still has electricity to sell, go there
         if (best_location(b, "Electricity", SHOP_SELLS) != 0) {
                 chosen = LOW_ENERGY;
@@ -252,7 +250,7 @@ int choose_location_type(struct bot *b) {
     }
 
     // Determining which type of location the bot should go to
-    if ((b->battery_level < world_size) && b->turns_left > min && has_electricity == 1) {
+    if ((b->battery_level <= 3 * min) && b->turns_left > min && has_electricity == 1) {
             // If the bot is low on energy, find a charging station
             strcpy(destination_type, "Electricity");
             shop_type = SHOP_SELLS;
@@ -468,7 +466,7 @@ int check_moves(struct bot *b) {
     }
 
     // There is no more electricity available
-    if ((b->battery_level < world_size) && b->turns_left > min) {
+    if ((b->battery_level <= 3 * min) && b->turns_left > min) {
         // If we are still carrying fruit, try and move somewhere to sell it
         if (b->fruit_kg != 0) {
             strcpy(destination_type, b->fruit);
