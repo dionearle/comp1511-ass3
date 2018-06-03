@@ -140,7 +140,7 @@ void run_unit_tests(void) {
 
     // Testing best_location
 
-    // Testing find_fruit
+    // Testing best_fruit
 
     // Testing check_moves
 }
@@ -319,7 +319,7 @@ int best_location(struct bot *b, char destination_type[MAX_NAME_CHARS], int valu
 
         // If this is the right location type, record price and east length
         if ((strcmp(cur_east->fruit, destination_type) == 0) && (skip_east == 0)
-        && east_len < (4 * b->maximum_move)) {
+        && east_len < (5 * b->maximum_move)) {
             prices_east_array[i] = cur_east->price;
             distance_east_array[i] = east_len;
             i++;
@@ -350,7 +350,7 @@ int best_location(struct bot *b, char destination_type[MAX_NAME_CHARS], int valu
 
         // If this is the right location type, record price and west length
         if ((strcmp(cur_west->fruit, destination_type) == 0) && (skip_west == 0)
-        && west_len < (4 * b->maximum_move)) {
+        && west_len < (5 * b->maximum_move)) {
             prices_west_array[j] = cur_west->price;
             distance_west_array[j] = west_len;
             j++;
