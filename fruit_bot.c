@@ -127,22 +127,128 @@ void print_move(struct bot *b) {
 
 // ADD A COMMENT HERE EXPLAINING YOUR OVERALL TESTING STRATEGY
 
+// EXPLANATION IS IN run_unit_tests!!!
+// Read testing strategy below for explanation of how I tested my bot. Since my created functions had structs as their arguments,
+// I found it very difficult to write unit tests for them. Instead, I used different methods of testing which are described below.
+// (I put them in the run_unit_tests function rather than here as my explanation took up alot of space)
+// EXPLANATION IS IN run_unit_tests!!!
+
 void run_unit_tests(void) {
     // PUT YOUR UNIT TESTS HERE
     // This is a difficult assignment to write unit tests for,
     // but make sure you describe your testing strategy above.
 
-    // Testing location_check
+    /*
+    The basic premise of my testing strategy was that I created numerous example
+    world files (with names such as test_world1.txt) that allowed me to ensure that
+    when my bot is at a particular location, it would perform the desired action.
+    Before I could do this I first created the world file using the template used
+    in the week 11 lab exercises.
 
-    // Testing calculate_world_size
+    For example, the file world0.txt has the following written inside:
 
-    // Testing choose_location_type
+        *** Fruit Bot Parameters ***
+        battery_capacity=74
+        maximum_fruit_kg=21
+        maximum_move=7
 
-    // Testing best_location
+        *** Turn 1 of 19 *** ***
 
-    // Testing best_fruit
+        CSE: other
+        Mathews A: will buy 1 kg of Apples for $51/kg
+        Quadrangle: other
+        Campus Charging: will sell 100 kJ of Electricity for $4/kJ
+        Kensington Apple Farm: will sell 3 kg of Apples for $18/kg
+        Campus Compost Heap: will buy 1000 kg of Anything for $1/kg
+        CLB 7: will buy 3 kg of Apples for $43/kg
 
-    // Testing check_moves
+        "Botty McBotbot" is at "CSE" with $117, battery level: 74
+        "Buffalo McBuff" is at "CSE" with $117, battery level: 74
+        "COMP1511 Student" is at "CSE" with $117, battery level: 74
+        *** You are "Dion Earle Fruit Bot"
+
+    From this format of file, I could basically change or add any parameter about
+    both the world and my bot. This included the world size, fruit types/prices,
+    my bot's position, maximum moves and battery levels. After I had created a
+    suitable world and had changed my bots current info to be able to test what I wanted to test,
+    I then ran my program yet passed in the text file as standard input,
+    looking like ./fruit_bot < test_world1.txt.
+
+    Doing so would then return the action the bot made for that turn, allowing me
+    to compare this to what I expected to happen. If it made the correct decision,
+    this meant the function that was in charge of making this decision was working as intended.
+
+    In terms of what I actually tested using this method, I first placed my bot at
+    different locations and ensured that if they could perform an action there,
+    (either buy or sell) that they did (and it was the correct action).
+    Doing so would test the location_check and world_size functions.
+
+        Selling: I first placed my bot on a location that buys fruit,
+    alongside giving my bot the same type of fruit. The bot should then print to attempt
+    to sell all of its supply.
+
+        Buying new fruit: I placed the bot on a location that sells fruit, and made the
+    bot carry nothing. As long as the location has quantity, and the bot has enough money
+    to buy some, the bot should print to buy the max amount of that fruit.
+
+        Buying the same fruit: Placing the bot on a location that sells fruit, if I
+    am already carrying fruit and it is the same type, the bot should print to buy
+    as much as it can.
+
+        Buying electricity: If the bot is on a location that sells electricity, and there
+    are more than a specified amount of turns left, alongside my battery level being
+    below a specified level, the bot should refill its energy.
+
+    After this, I then tested that if I couldn't perform an action at the current
+    location, that the bot would move to the most reasonable location to go to.
+    This would be testing the choose_location_type, best_location & best_fruit functions.
+
+        Finding electricity to buy: If my bot is running low on electricity, and there
+    are more than a specified amount of turns left, the bot should find somewhere to
+    refill its energy.
+
+        Finding the same fruit to buy: If my bot is already carrying a fruit, yet it has
+    not reached maximum capacity, it should find somewhere to buy even more of this
+    fruit (as long as there are more than a specified amount of turns left).
+
+        Finding new fruit to buy: If my bot was not carrying any fruit, then it should move
+    to the location which sells the best value fruit (as long as it is within a certain
+    range of its current location).
+
+        Finding location to sell fruit: If the bot is carrying fruit and either there are not
+    many turns left or its capacity is full, it should just move to somewhere to sell this
+    fruit. This location should buy the fruit for the highest price out of all neraby buyers.
+
+    Finally, I ran several tests that ensured my bot wouldn't make choices that
+    could cause it to get stuck carrying fruit when either the game ends or
+    it is about to run out of electricity.
+    These tests would be ensuring the check_moves function works properly.
+
+        Limited amount of turns left in game: If there are not many turns left in the game,
+    the bot should not start searching for more places to buy fruit, instead its chosen action
+    should be to either move to sell the fruit it is carrying or simply stay put.
+
+        Limited battery remaining (and no more to buy): If the bot is close to running out of battery
+    and there is no more supply to buy a refill, the bot should avoid buying any fruit,
+    instead moving to sell any fruit being carried and then stopping for rest of game.
+
+    For all of the tests conducted, I would first create a situation in which the bot
+    SHOULD perform the action being tested, alongside creating a situation where it SHOULD
+    NOT perform the desired action. To further solidify functions worked, I tested on different
+    location types as well as different fruit types and prices to be sure it was not just luck.
+
+    All of these tests were not only done in the smaller sized world described above,
+    but also in medium and larger sized worlds. Testing in these different environments
+    allowed me to discover many fatal bugs that were not present in the smaller worlds.
+    This was actually where I spent most of my time fixing errors, with the testing
+    of various world sizes proving essential.
+
+    Additionally, once I was pleased with my bots performance in a world alone,
+    I repeated many of these tests with multiple other bots in the world, both at the same
+    and different locations. This tested that there were no major issues when other people
+    were competing against my bot.
+
+    */
 }
 
 // ADD YOUR FUNCTIONS HERE
